@@ -30,7 +30,9 @@ Study how play-calling behavior shifts during high-pressure or late-game scenari
 Deliver Insights
 Translate model results into clear, interpretable visualizations and summary metrics.
 
-Research Question: How accurately can we predict whether a play will be a run or pass using game-context features?
+### Research Question: 
+#### How accurately can we predict whether a play will be a run or pass using game-context features?
+
 
 ### Dataset Overview
 
