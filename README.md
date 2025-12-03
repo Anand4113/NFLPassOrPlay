@@ -15,19 +15,19 @@ By analyzing large-scale play-by-play data, we can uncover hidden patterns behin
 
 Our goal is to uncover the strategic logic behind NFL play-calling using data-driven methods.
 
-Predict Play Type
+#### Predict Play Type:
 Build a machine learning model that classifies whether the next play will be a Run or a Pass based on game situation.
 
-Identify Key Factors
+#### Identify Key Factors:
 Determine which contextual features (down, distance, yard line, score differential, time remaining, etc.) most influence play selection.
 
-Analyze Team Tendencies
+#### Analyze Team Tendencies:
 Compare how teams vary in their run-pass balance and situational decision-making.
 
-Capture Game Dynamics
+#### Capture Game Dynamics:
 Study how play-calling behavior shifts during high-pressure or late-game scenarios.
 
-Deliver Insights
+#### Deliver Insights:
 Translate model results into clear, interpretable visualizations and summary metrics.
 
 ### Research Question: 
