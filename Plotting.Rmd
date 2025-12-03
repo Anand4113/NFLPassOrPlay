@@ -1,0 +1,151 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+
+df_raw <- read.csv("nfl_cleaned.csv")
+
+# Keep only Run/Pass
+df_raw <- subset(df_raw, PlayType %in% c("Run", "Pass"))
+df_raw$PlayType <- factor(df_raw$PlayType)
+
+
+```
+
+```{r}
+
+numeric_vars <- c(
+  "ydstogo",
+  "yrdline100",
+  "ScoreDiff",
+  "GoalToGo",
+  "PlayTimeDiff",
+  "TimeSecs",
+  "WPA",
+  "Win_Prob",
+  "Touchdown_Prob",
+  "Opp_Touchdown_Prob",
+  "EPA",
+  "Away_WP_pre",
+  "Home_WP_post",
+  "Home_WP_pre",
+  "Away_WP_post",
+  "Yards.Gained"
+)
+
+```
+
+```{r}
+
+numeric_vars <- intersect(numeric_vars, names(df_raw))
+
+```
+
+```{r}
+
+dir.create("plots_raw", showWarnings = FALSE)
+dir.create("plots_scaled", showWarnings = FALSE)
+
+```
+
+```{r}
+
+library(ggplot2)
+
+for (v in numeric_vars) {
+  
+  # Histogram
+  p1 <- ggplot(df_raw, aes_string(v)) +
+    geom_histogram(color="black", fill="steelblue", bins = 40) +
+    ggtitle(paste("Histogram of", v, "(raw)"))
+  
+  ggsave(paste0("plots_raw/hist_", v, ".png"), p1, width = 6, height = 4)
+  
+  # Boxplot
+  p2 <- ggplot(df_raw, aes_string(x = "PlayType", y = v)) +
+    geom_boxplot(fill = "tomato") +
+    ggtitle(paste("Boxplot of", v, "by PlayType (raw)"))
+  
+  ggsave(paste0("plots_raw/box_", v, ".png"), p2, width = 6, height = 4)
+}
+
+## SCATTERPLOTS (pairwise)
+for (v in numeric_vars) {
+  p3 <- ggplot(df_raw, aes_string(x = v, y = "Yards.Gained", color = "PlayType")) +
+    geom_point(alpha = 0.2) +
+    ggtitle(paste("Scatterplot:", v, "vs Yards.Gained (raw)"))
+  
+  ggsave(paste0("plots_raw/scatter_", v, "_vs_Yards.png"), p3, width = 6, height = 4)
+}
+
+```
+```{r}
+# standardize data 
+df_scaled <- df_raw
+df_scaled[numeric_vars] <- scale(df_raw[numeric_vars])
+
+```
+
+```{r}
+#normalized 
+df_norm <- df_raw
+df_norm[numeric_vars] <- as.data.frame(
+  lapply(df_raw[numeric_vars], function(x) (x - min(x)) / (max(x) - min(x)))
+)
+
+```
+
+
+```{r}
+
+for (v in numeric_vars) {
+  
+  p1 <- ggplot(df_scaled, aes_string(v)) +
+    geom_histogram(color="black", fill="darkgreen", bins = 40) +
+    ggtitle(paste("Histogram of", v, "(standardized)"))
+  
+  ggsave(paste0("plots_scaled/hist_", v, ".png"), p1, width = 6, height = 4)
+  
+  p2 <- ggplot(df_scaled, aes_string(x = "PlayType", y = v)) +
+    geom_boxplot(fill = "purple") +
+    ggtitle(paste("Boxplot of", v, "by PlayType (standardized)"))
+  
+  ggsave(paste0("plots_scaled/box_", v, ".png"), p2, width = 6, height = 4)
+}
+
+for (v in numeric_vars) {
+  
+  p3 <- ggplot(df_scaled, aes_string(x = v, y = "Yards.Gained", color="PlayType")) +
+    geom_point(alpha = 0.2) +
+    ggtitle(paste("Scatterplot:", v, "vs Yards.Gained (standardized)"))
+  
+  ggsave(paste0("plots_scaled/scatter_", v, "_vs_Yards.png"), p3, width = 6, height = 4)
+}
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
