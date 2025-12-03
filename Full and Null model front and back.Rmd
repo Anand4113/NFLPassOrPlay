@@ -1,0 +1,215 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+##############################################
+## 0. Setup
+##############################################
+
+rm(list = ls())
+
+library(dplyr)
+```
+
+
+```{r}
+##############################################
+## 1. Load data and filter to Run / Pass
+##############################################
+
+df <- read.csv("nfl_cleaned.csv")
+
+# Keep only Run and Pass plays
+df <- df %>%
+  filter(PlayType %in% c("Run", "Pass"))
+
+# Ensure PlayType is a factor
+df$PlayType <- factor(df$PlayType)
+
+# Optional: check basic structure
+str(df)
+table(df$PlayType)
+```
+
+
+```{r}
+##############################################
+## 2. Identify numeric and categorical variables
+##############################################
+
+numeric_vars <- names(df)[sapply(df, is.numeric)]
+numeric_vars <- setdiff(numeric_vars, "PlayType")  # safety
+
+cat_vars <- names(df)[sapply(df, is.factor) | sapply(df, is.character)]
+cat_vars <- setdiff(cat_vars, "PlayType")
+
+numeric_vars
+cat_vars
+```
+
+
+```{r}
+##############################################
+## 3. Drop constant columns (before scaling)
+##############################################
+
+# Find columns with only 1 unique value in the ORIGINAL df
+const_cols <- names(df)[sapply(df, function(x) length(unique(x)) == 1)]
+const_cols   # you should see "EPA", "WPA" here if they are constant
+
+# Remove constant columns from df
+df_noconst <- df[ , !(names(df) %in% const_cols)]
+
+# Update numeric_vars for the reduced data
+numeric_vars <- names(df_noconst)[sapply(df_noconst, is.numeric)]
+numeric_vars <- setdiff(numeric_vars, "PlayType")
+
+numeric_vars
+```
+
+
+```{r}
+##############################################
+## 4. Standardize numeric predictors
+##############################################
+
+df_scaled <- df_noconst
+
+# Standardize all numeric variables (z-scores)
+df_scaled[ , numeric_vars] <- scale(df_noconst[ , numeric_vars])
+```
+
+
+```{r}
+##############################################
+## 5. Build model frame and model matrix (handle NAs)
+##############################################
+
+# Build a model.frame that:
+#  - Uses PlayType as response
+#  - Uses all other columns as predictors
+#  - Automatically drops rows with any NA (na.omit)
+mf <- model.frame(PlayType ~ ., data = df_scaled, na.action = na.omit)
+
+# model.matrix will:
+#  - one-hot encode factors/characters
+#  - include an intercept column (we remove it after)
+X <- model.matrix(PlayType ~ ., data = mf)[ , -1]  # drop intercept column
+
+# Now PlayType and X are perfectly aligned (same rows)
+data_model <- data.frame(
+  PlayType = mf$PlayType,
+  X
+)
+
+# Ensure PlayType is factor and set reference level if desired
+data_model$PlayType <- relevel(data_model$PlayType, ref = "Run")
+
+str(data_model)
+nrow(data_model)   # this will be the number of complete-case rows
+```
+
+
+```{r}
+##############################################
+## 6. Fit Null, Full, Forward, and Backward Models
+##############################################
+
+# Null model (intercept only)
+null_mod <- glm(PlayType ~ 1,
+                data = data_model,
+                family = binomial)
+
+# Full model (all predictors)
+full_mod <- glm(PlayType ~ .,
+                data = data_model,
+                family = binomial)
+
+# Backward stepwise selection (by AIC)
+backward_mod <- step(full_mod,
+                     direction = "backward",
+                     trace = TRUE)
+
+# Forward stepwise selection (by AIC)
+forward_mod <- step(
+  null_mod,
+  scope = list(lower = null_mod, upper = full_mod),
+  direction = "forward",
+  trace = TRUE
+)
+```
+
+
+```{r}
+##############################################
+## 7. Model summaries
+##############################################
+
+summary(null_mod)
+summary(full_mod)
+summary(backward_mod)
+summary(forward_mod)
+```
+
+
+```{r}
+##############################################
+## 8. Compare models: AIC, BIC, Cp
+##############################################
+
+AIC(null_mod, full_mod, backward_mod, forward_mod)
+BIC(null_mod, full_mod, backward_mod, forward_mod)
+
+calc_cp <- function(model) {
+  dev <- model$deviance
+  p   <- length(coef(model))
+  cp  <- dev + 2*p
+  return(cp)
+}
+
+cp_values <- c(
+  null = calc_cp(null_mod),
+  forward = calc_cp(forward_mod),
+  backward = calc_cp(backward_mod),
+  full = calc_cp(full_mod)
+)
+
+cp_values
+```
+
+
+```{r}
+##############################################
+## 9. Simple accuracy comparison on training data
+##############################################
+
+get_accuracy <- function(mod, data, threshold = 0.5) {
+  p_hat <- predict(mod, newdata = data, type = "response")
+  y_hat <- ifelse(p_hat > threshold, "Pass", "Run")
+  mean(y_hat == data$PlayType)
+}
+
+acc_null      <- get_accuracy(null_mod, data_model)
+acc_full      <- get_accuracy(full_mod, data_model)
+acc_backward  <- get_accuracy(backward_mod, data_model)
+acc_forward   <- get_accuracy(forward_mod, data_model)
+
+c(
+  null      = acc_null,
+  full      = acc_full,
+  backward  = acc_backward,
+  forward   = acc_forward
+)
+```
+
+
+```{r}
+##############################################
+## 10. Likelihood Ratio Test: Null vs Full
+##############################################
+
+anova(null_mod, full_mod, test = "Chisq")
+```
+
