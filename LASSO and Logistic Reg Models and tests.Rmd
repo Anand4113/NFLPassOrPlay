@@ -1,0 +1,292 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+#install.packages("pscl")
+#install.packages("pROC")
+#install.packages("ResourceSelection")
+#install.packages("aod")
+#install.packages("Matrix")
+
+##############################################
+## NFL PlayType Modeling Script
+## - Full logistic regression
+## - LASSO logistic regression
+## - Model assessment & diagnostics
+##############################################
+
+## 0. Load required packages
+##############################################
+library(glmnet)          # LASSO / Elastic Net
+library(pscl)            # pR2 (McFadden pseudo-R2)
+library(pROC)            # ROC & AUC
+library(ResourceSelection) # Hosmer–Lemeshow test
+library(aod)             # Wald tests
+library(Matrix)          # sparse matrices (optional but handy)
+```
+
+
+```{r}
+## 1. Load data and basic preprocessing
+##############################################
+# Adjust path if needed
+df <- read.csv("nfl_cleaned.csv")
+
+# Keep only Run / Pass
+df <- subset(df, PlayType %in% c("Run", "Pass"))
+df$PlayType <- factor(df$PlayType)
+
+# Optional: check class balance
+table(df$PlayType)
+```
+
+
+```{r}
+## 2. Standardize numeric predictors
+##############################################
+numeric_cols <- c(
+  "ydstogo",
+  "yrdline100",
+  "ScoreDiff",
+  "GoalToGo",
+  "PlayTimeDiff",
+  "TimeSecs",
+  "WPA",
+  "Win_Prob",
+  "Touchdown_Prob",
+  "Opp_Touchdown_Prob",
+  "EPA",
+  "Away_WP_pre",
+  "Home_WP_post",
+  "Home_WP_pre",
+  "Away_WP_post",
+  "Yards.Gained"
+)
+
+# Only keep numeric_cols that actually exist in df (safety)
+numeric_cols <- intersect(numeric_cols, names(df))
+
+df_scaled <- df
+df_scaled[ , numeric_cols] <- scale(df_scaled[ , numeric_cols])
+```
+
+
+```{r}
+## 3. Build model frame for full logistic & LASSO
+##############################################
+# Full model formula (using factors posteam and DefensiveTeam)
+formula_full <- PlayType ~ down + ydstogo + yrdline100 + ScoreDiff + GoalToGo +
+  qtr + PlayTimeDiff + TimeSecs + posteam + DefensiveTeam +
+  WPA + Win_Prob + Touchdown_Prob + Opp_Touchdown_Prob + EPA +
+  Away_WP_pre + Home_WP_post + Home_WP_pre + Away_WP_post +
+  Yards.Gained
+
+# model.frame: drops rows with any missing values in used columns
+mf <- model.frame(formula_full, data = df_scaled, na.action = na.omit)
+
+# Response factor (Run/Pass)
+y_factor <- mf$PlayType
+# Binary response (0 = Run, 1 = Pass) for some tests
+y_bin <- ifelse(y_factor == "Pass", 1, 0)
+
+# Design matrix for LASSO (one-hot encoding of factors)
+X <- model.matrix(formula_full, data = mf)[, -1]  # drop intercept column
+
+# Data frame version for post-LASSO GLM
+data_model <- data.frame(
+  PlayType = y_factor,
+  X
+)
+
+# Ensure reference level of PlayType is "Run"
+data_model$PlayType <- relevel(data_model$PlayType, ref = "Run")
+y_factor <- data_model$PlayType
+y_bin <- ifelse(y_factor == "Pass", 1, 0)
+```
+
+
+```{r}
+## 4. Fit full logistic regression (unpenalized)
+##############################################
+full_mod <- glm(
+  formula_full,
+  data   = mf,
+  family = binomial
+)
+
+summary(full_mod)
+```
+
+
+```{r}
+## 5. Fit LASSO logistic regression (via cv.glmnet)
+##############################################
+set.seed(123)  # for reproducibility
+
+lasso_model <- cv.glmnet(
+  x        = as.matrix(X),
+  y        = y_factor,        # factor with two levels is OK
+  family   = "binomial",
+  alpha    = 1,               # LASSO
+  standardize = FALSE         # we already standardized numeric predictors
+)
+
+# Inspect best lambda values
+lasso_model$lambda.min
+lasso_model$lambda.1se
+```
+
+
+```{r}
+##############################################
+## 1) McFadden's pseudo-R^2 for full logistic model
+##############################################
+cat("\n===== McFadden Pseudo-R^2 (Full Logistic Model) =====\n")
+r2_full <- pR2(full_mod)
+print(r2_full)
+```
+
+
+```{r}
+##############################################
+## 2) ROC & AUC for full logistic and LASSO models
+##############################################
+cat("\n===== ROC / AUC =====\n")
+
+# Full logistic regression probabilities (P(Pass | X))
+prob_full <- predict(full_mod, type = "response")
+
+roc_full <- roc(response = y_bin, predictor = prob_full)
+auc_full <- auc(roc_full)
+
+cat("Full Logistic Model AUC:", round(auc_full, 3), "\n")
+
+# LASSO probabilities at lambda.min
+prob_lasso <- as.numeric(predict(lasso_model, newx = as.matrix(X),
+                                 s = "lambda.min", type = "response"))
+
+roc_lasso <- roc(response = y_bin, predictor = prob_lasso)
+auc_lasso <- auc(roc_lasso)
+
+cat("LASSO Model AUC (lambda.min):", round(auc_lasso, 3), "\n")
+
+# Optional: plot ROC curves (uncomment if running interactively)
+# plot(roc_full, col = "black", main = "ROC Curves")
+# lines(roc_lasso, col = "red")
+# legend("bottomright", legend = c("Full Logistic", "LASSO"),
+#        col = c("black", "red"), lwd = 2)
+```
+
+
+```{r}
+##############################################
+## 3) Hosmer–Lemeshow calibration test (Full Model)
+##############################################
+cat("\n===== Hosmer–Lemeshow Test (Full Model) =====\n")
+hl_full <- hoslem.test(y_bin, prob_full, g = 10)
+print(hl_full)
+```
+
+
+```{r}
+##############################################
+## 4) Post-LASSO Logistic Regression (valid p-values)
+##############################################
+cat("\n===== Post-LASSO Logistic Regression =====\n")
+
+# Extract non-zero coefficients at lambda.min
+lasso_coef <- coef(lasso_model, s = "lambda.min")
+nz_idx <- which(lasso_coef != 0)
+nz_names <- rownames(lasso_coef)[nz_idx]
+nz_names <- setdiff(nz_names, "(Intercept)")  # drop intercept name
+
+cat("Number of non-zero predictors (LASSO):", length(nz_names), "\n")
+cat("Predictors:\n")
+print(nz_names)
+
+# Build reduced dataset with only those predictors
+data_post <- data_model[, c("PlayType", nz_names)]
+
+post_mod <- glm(PlayType ~ ., data = data_post, family = binomial)
+summary(post_mod)
+```
+
+
+```{r}
+##############################################
+## 5) Group-wise Wald Tests (teams, defenses)
+##############################################
+cat("\n===== Wald Tests for Groups (Post-LASSO Model) =====\n")
+
+# Offensive team effects (posteam*)
+team_terms <- grep("^posteam", names(coef(post_mod)))
+
+if (length(team_terms) > 0) {
+  wald_team <- wald.test(
+    b     = coef(post_mod),
+    Sigma = vcov(post_mod),
+    Terms = team_terms
+  )
+  cat("\nWald Test - Offensive Team Effects (posteam*):\n")
+  print(wald_team)
+} else {
+  cat("No posteam* terms in post-LASSO model.\n")
+}
+
+# Defensive team effects (DefensiveTeam*)
+def_terms <- grep("^DefensiveTeam", names(coef(post_mod)))
+
+if (length(def_terms) > 0) {
+  wald_def <- wald.test(
+    b     = coef(post_mod),
+    Sigma = vcov(post_mod),
+    Terms = def_terms
+  )
+  cat("\nWald Test - Defensive Team Effects (DefensiveTeam*):\n")
+  print(wald_def)
+} else {
+  cat("No DefensiveTeam* terms in post-LASSO model.\n")
+}
+```
+
+
+```{r}
+##############################################
+## 6) Confusion Matrix Metrics (beyond accuracy) for LASSO
+##############################################
+cat("\n===== Confusion Matrix Metrics (LASSO, lambda.min) =====\n")
+
+# Class predictions from LASSO
+pred_class <- predict(lasso_model, newx = as.matrix(X),
+                      s = "lambda.min", type = "class")
+
+cm <- table(pred_class, y_factor)
+print(cm)
+
+TP <- cm["Pass", "Pass"]
+FP <- cm["Pass", "Run"]
+FN <- cm["Run",  "Pass"]
+TN <- cm["Run",  "Run"]
+
+accuracy  <- (TP + TN) / sum(cm)
+precision <- TP / (TP + FP)
+recall    <- TP / (TP + FN)      # sensitivity
+specificity <- TN / (TN + FP)
+f1        <- 2 * precision * recall / (precision + recall)
+
+metrics <- c(
+  accuracy   = accuracy,
+  precision  = precision,
+  recall     = recall,
+  specificity = specificity,
+  F1         = f1
+)
+
+print(round(metrics, 4))
+
+cat("\n===== Script complete. =====\n")
+
+```
+
