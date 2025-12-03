@@ -16,7 +16,7 @@ By analyzing large-scale play-by-play data, we can uncover hidden patterns behin
 Our goal is to uncover the strategic logic behind NFL play-calling using data-driven methods.
 
 Predict Play Type
-Build a machine learning model that classifies whether the next play will be a Run or Pass based on game situation.
+Build a machine learning model that classifies whether the next play will be a Run or a Pass based on game situation.
 
 Identify Key Factors
 Determine which contextual features (down, distance, yard line, score differential, time remaining, etc.) most influence play selection.
@@ -31,7 +31,7 @@ Deliver Insights
 Translate model results into clear, interpretable visualizations and summary metrics.
 
 ### Research Question: 
-#### How accurately can we predict whether a play will be a run or pass using game-context features?
+#### How accurately can we predict whether a play will be a run or a pass using game-context features?
 
 
 ### Dataset Overview
