@@ -1,3 +1,5 @@
+#This file runs Lasso and the simple model and then compares both using AIC/BIC and then looks at model accuracy of each one
+
 attach(nfl_cleaned)
 nfl = nfl_cleaned
 
@@ -135,4 +137,5 @@ has_zero <- rownames(intervals)[contains_zero]
 #confint results
 no_zero
 has_zero
+
 
