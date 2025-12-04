@@ -73,10 +73,23 @@ https://www.karlin.mff.cuni.cz/~pesta/NMFM334/StatLearning/Book2nd/ISLRv2_websit
 There are files included in this github that you can use to run the model at home!
 
 
-#### 📄 Modeling Notebook (`playtype_logistic_model.Rmd`)
+#### 📄 **Modeling (`playtype_logistic_model.Rmd`)**
 
 This R Notebook contains the full workflow used to build and evaluate logistic regression models predicting whether an NFL play is a Run or Pass. The script loads and filters the dataset, identifies numeric and categorical variables, removes constant predictors, standardizes all numeric features, and constructs a clean model matrix with one-hot encoding.
 
-The notebook fits four key models—**Null**, **Full**, **Forward Stepwise**, and **Backward Stepwise**—and compares them using AIC, BIC, Mallows' Cp, and training accuracy. It also performs a formal **Likelihood Ratio Test** to evaluate whether adding predictors significantly improves model performance.
+Here you go — a **short, polished README description** plus a **professional file name suggestion** for this second exploratory-analysis notebook.
+
+#### **Exploratory Visualization (`nfl_eda_visualizations.Rmd`)**
+
+This notebook performs the exploratory data analysis (EDA) and visualization steps for the Run/Pass prediction project. It loads the cleaned NFL play-by-play dataset, selects key numeric features, and generates a comprehensive set of plots to better understand variable distributions and their relationships to play outcomes.
+
+The script produces:
+
+* **Histograms** of all numeric predictors (raw and standardized)
+* **Boxplots** comparing numeric variables across Run vs Pass plays
+* **Scatterplots** showing each predictor vs. Yards Gained, colored by play type
+* **Standardized and Min–Max normalized versions** of the dataset for comparison
+
+All visual outputs are automatically saved into organized folders (`plots_raw/` and `plots_scaled/`), making this notebook a centralized tool for diagnostic inspection and feature understanding. These visualizations help identify patterns, detect skewness/outliers, and support later modeling decisions.
 
 
