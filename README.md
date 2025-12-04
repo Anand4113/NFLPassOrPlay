@@ -77,6 +77,6 @@ There are files included in this github that you can use to run the model at hom
 
 This R Notebook contains the full workflow used to build and evaluate logistic regression models predicting whether an NFL play is a Run or Pass. The script loads and filters the dataset, identifies numeric and categorical variables, removes constant predictors, standardizes all numeric features, and constructs a clean model matrix with one-hot encoding.
 
-The notebook fits four key models—Null, **Full**, **Forward Stepwise**, and **Backward Stepwise**—and compares them using AIC, BIC, Mallows' Cp, and training accuracy. It also performs a formal **Likelihood Ratio Test** to evaluate whether adding predictors significantly improves model performance.
+The notebook fits four key models—**Null**, **Full**, **Forward Stepwise**, and **Backward Stepwise**—and compares them using AIC, BIC, Mallows' Cp, and training accuracy. It also performs a formal **Likelihood Ratio Test** to evaluate whether adding predictors significantly improves model performance.
 
 
