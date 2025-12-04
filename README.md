@@ -103,6 +103,18 @@ The code does the following:
 * Using **Wald tests** to examine the joint effects of offensive and defensive team factors.
 * Computing a full set of **confusion matrix metrics** (accuracy, precision, recall, specificity, F1) for the LASSO model.
 
-This notebook is the main reference for model performance, regularization, and diagnostic checks in the project.
+#### 📄 **LASSO vs. Baseline Logistic Script (`nfl_lasso_vs_baseline.R`)**
+
+This script fits and compares a **LASSO-regularized logistic regression model** to a simpler baseline logistic model for predicting whether a play is a **Run** or **Pass**.
+
+Key steps:
+
+* Filters the dataset to Run/Pass plays and converts `PlayType` to a factor.
+* Standardizes core situational variables (e.g., `ydstogo`, `yrdline100`, `ScoreDiff`, `GoalToGo`, `TimeSecs`, `WPA`, `EPA`, `Yards.Gained`).
+* Normalizes probability-related features (e.g., `Win_Prob`, `Touchdown_Prob`, `Away_WP_pre`, `Home_WP_pre`) to the [0,1] range.
+* Builds a model frame and model matrix with dummy variables for categorical predictors.
+* Uses **`cv.glmnet`** to select the optimal LASSO penalty (`lambda.min`) and fits the LASSO model.
+* Evaluates in-sample classification performance (confusion table + accuracy).
+* Fits a **post-LASSO logistic regression** on the selected variables, extracts significant predictors (p ≤ 0.05), and checks confidence intervals to see which effects exclude zero.
 
 
