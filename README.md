@@ -79,7 +79,7 @@ This R Notebook contains the full workflow used to build and evaluate logistic r
 
 Here you go — a **short, polished README description** plus a **professional file name suggestion** for this second exploratory-analysis notebook.
 
-#### **Exploratory Visualization (`nfl_eda_visualizations.Rmd`)**
+#### 📄 **Exploratory Visualization (`nfl_eda_visualizations.Rmd`)**
 
 This notebook performs the exploratory data analysis (EDA) and visualization steps for the Run/Pass prediction project. It loads the cleaned NFL play-by-play dataset, selects key numeric features, and generates a comprehensive set of plots to better understand variable distributions and their relationships to play outcomes.
 
@@ -89,7 +89,20 @@ The script produces:
 * **Boxplots** comparing numeric variables across Run vs Pass plays
 * **Scatterplots** showing each predictor vs. Yards Gained, colored by play type
 * **Standardized and Min–Max normalized versions** of the dataset for comparison
+  
+#### 📄 **Regularized Modeling & Diagnostics Notebook (`nfl_lasso_diagnostics.Rmd`)**
 
-All visual outputs are automatically saved into organized folders (`plots_raw/` and `plots_scaled/`), making this notebook a centralized tool for diagnostic inspection and feature understanding. These visualizations help identify patterns, detect skewness/outliers, and support later modeling decisions.
+This notebook extends the Run/Pass analysis by fitting both **full logistic regression** and **LASSO-regularized logistic regression**, and then evaluating their performance and calibration.
+The code does the following:
+
+* Standardizing key numeric predictors and constructing a model frame with offensive/defensive team indicators.
+* Fitting a **full (unpenalized) logistic regression** and a **LASSO model** via `cv.glmnet`.
+* Computing **McFadden’s pseudo R²**, **ROC curves**, and **AUC** for both models.
+* Running a **Hosmer–Lemeshow test** to assess calibration of the full model.
+* Performing a **post-LASSO logistic regression** on the selected predictors to obtain interpretable coefficients and valid p-values.
+* Using **Wald tests** to examine the joint effects of offensive and defensive team factors.
+* Computing a full set of **confusion matrix metrics** (accuracy, precision, recall, specificity, F1) for the LASSO model.
+
+This notebook is the main reference for model performance, regularization, and diagnostic checks in the project.
 
 
