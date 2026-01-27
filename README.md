@@ -72,12 +72,9 @@ https://www.karlin.mff.cuni.cz/~pesta/NMFM334/StatLearning/Book2nd/ISLRv2_websit
 ### R Code:
 There are files included in this github that you can use to run the model at home!
 
-
 #### 📄 **Modeling (`playtype_logistic_model.Rmd`)**
 
 This R Notebook contains the full workflow used to build and evaluate logistic regression models predicting whether an NFL play is a Run or Pass. The script loads and filters the dataset, identifies numeric and categorical variables, removes constant predictors, standardizes all numeric features, and constructs a clean model matrix with one-hot encoding.
-
-Here you go — a **short, polished README description** plus a **professional file name suggestion** for this second exploratory-analysis notebook.
 
 #### 📄 **Exploratory Visualization (`nfl_eda_visualizations.Rmd`)**
 
